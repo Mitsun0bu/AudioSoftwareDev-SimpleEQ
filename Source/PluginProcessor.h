@@ -63,6 +63,19 @@ public:
     juce::AudioProcessorValueTreeState param_manager{*this, nullptr, "Parameters", createParameterLayout()};
 
 private:
+
+    // [LUCAS] : Define Filter as a single-precision float IIR filter
+    using Filter = juce::dsp::IIR::Filter<float>;
+
+    // [LUCAS] : Define CutFilter as a chain of four IIR filters
+    using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+
+    // [LUCAS] : Define a MonoChain as a chain containing a CutFilter, a single IIR filter, and another CutFilter
+    using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+
+    // [LUCAS] : Declare left and right MonoChains for processing stereo audio
+    MonoChain leftChain, rightChain;
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)
 };
