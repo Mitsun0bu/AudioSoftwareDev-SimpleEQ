@@ -56,6 +56,12 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    // [LUCAS] : This method creates the parameters of my EQ
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+  
+    // [LUCAS] : This is the object that manages the parameters of my EQ
+    juce::AudioProcessorValueTreeState param_manager{*this, nullptr, "Parameters", createParameterLayout()};
+
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)
