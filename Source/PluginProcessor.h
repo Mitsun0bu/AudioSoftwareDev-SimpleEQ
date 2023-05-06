@@ -10,6 +10,17 @@
 
 #include <JuceHeader.h>
 
+// [LUCAS] : Struct to hold the parameters of the EQ
+struct ChainSettings
+{
+    float peakFreq { 0 }, peakGainInDb { 0 }, peakQ { 1.f };
+    float loCutFreq { 0 }, hiCutFreq { 0 };
+    float loCutSlope { 1 }, hiCutSlope { 1 };
+};
+
+// [LUCAS] : Getters for the parameters of the EQ
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& param_manager);
+
 //==============================================================================
 /**
 */
@@ -75,6 +86,13 @@ private:
 
     // [LUCAS] : Declare left and right MonoChains for processing stereo audio
     MonoChain leftChain, rightChain;
+
+    enum ChainPositions
+    {
+        LowCut,
+        Peak,
+        HighCut
+    };
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)

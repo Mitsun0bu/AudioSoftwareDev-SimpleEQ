@@ -106,6 +106,21 @@ void SimpleEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     leftChain.prepare(spec);
     rightChain.prepare(spec);
 
+    // [LUCAS] : Get the chain_settings from the param_manager
+    auto chain_settings = getChainSettings(param_manager);
+
+    // [LUCAS] : Create the peak filter coefficients based on the current chain_settings
+    auto peak_coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        sampleRate,
+        chain_settings.peakFreq,
+        chain_settings.peakQ,
+        juce::Decibels::decibelsToGain(chain_settings.peakGainInDb)
+    );
+
+    // [LUCAS] : Set the peak filter coefficients for the left and right channels
+    leftChain.get<ChainPositions::Peak>().coefficients = *peak_coefficients;
+    rightChain.get<ChainPositions::Peak>().coefficients = *peak_coefficients;
+
 }
 
 void SimpleEQAudioProcessor::releaseResources()
@@ -155,6 +170,19 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    // [LUCAS] : 
+    auto chain_settings = getChainSettings(param_manager);
+
+    auto peak_coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        getSampleRate(),
+        chain_settings.peakFreq,
+        chain_settings.peakQ,
+        juce::Decibels::decibelsToGain(chain_settings.peakGainInDb)
+    );
+
+    leftChain.get<ChainPositions::Peak>().coefficients = *peak_coefficients;
+    rightChain.get<ChainPositions::Peak>().coefficients = *peak_coefficients;
+
     // [LUCAS] : Create an AudioBlock<float> wrapper for the input buffer
     juce::dsp::AudioBlock<float> block(buffer);
 
@@ -201,6 +229,20 @@ void SimpleEQAudioProcessor::setStateInformation (const void* data, int sizeInBy
     // whose contents will have been created by the getStateInformation() call.
 }
 
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& param_manager)
+{
+    ChainSettings settings;
+
+    settings.loCutFreq      = param_manager.getRawParameterValue("LoCut Freq")->load();
+    settings.hiCutFreq      = param_manager.getRawParameterValue("HiCut Freq")->load();
+    settings.peakFreq       = param_manager.getRawParameterValue("Peak Freq")->load();
+    settings.peakGainInDb   = param_manager.getRawParameterValue("Peak Gain")->load();
+    settings.peakQ          = param_manager.getRawParameterValue("Peak Quality")->load();
+    settings.loCutSlope     = param_manager.getRawParameterValue("LoCut Slope")->load();
+    settings.hiCutSlope     = param_manager.getRawParameterValue("HiCut Slope")->load();
+
+    return (settings);
+}
 //[LUCAS] : This method creates the parameters for my EQ
 juce::AudioProcessorValueTreeState::ParameterLayout
     SimpleEQAudioProcessor::createParameterLayout()
@@ -210,21 +252,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID("LoCut Freq", 1),
         "LoCut Freq",
-        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.f),
+        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
         20.f
     ));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID("HiCut Freq", 1),
         "HiCut Freq",
-        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.f),
+        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
         20000.f
     ));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID("Peak Freq", 1),
         "Peak Freq",
-        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 1.f),
+        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
         750.f
     ));
 
