@@ -149,6 +149,16 @@ private:
                 update<0>(chain, cutCoefficients);
         }
     }
+
+    // LUCAS] :
+    void updateLowCutFilter(const ChainSettings& chainSettings);
+
+    // LUCAS] :
+    void updateHighCutFilter(const ChainSettings& chainSettings);
+
+    // LUCAS] :
+    void updateFilters();
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)
 };
