@@ -10,16 +10,25 @@
 
 #include <JuceHeader.h>
 
+// [LUCAS] : Define the slope of the filters
+enum Slope
+{
+    Slope_12,
+    Slope_24,
+    Slope_36,
+    Slope_48
+};
+
 // [LUCAS] : Struct to hold the parameters of the EQ
 struct ChainSettings
 {
     float peakFreq { 0 }, peakGainInDb { 0 }, peakQ { 1.f };
-    float loCutFreq { 0 }, hiCutFreq { 0 };
-    float loCutSlope { 1 }, hiCutSlope { 1 };
+    float lowCutFreq { 0 }, highCutFreq { 0 };
+    Slope lowCutSlope { Slope::Slope_12 }, highCutSlope { Slope::Slope_12 };
 };
 
 // [LUCAS] : Getters for the parameters of the EQ
-ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& param_manager);
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& parametersManager);
 
 //==============================================================================
 /**
@@ -71,7 +80,7 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
   
     // [LUCAS] : This is the object that manages the parameters of my EQ
-    juce::AudioProcessorValueTreeState param_manager{*this, nullptr, "Parameters", createParameterLayout()};
+    juce::AudioProcessorValueTreeState parametersManager{*this, nullptr, "Parameters", createParameterLayout()};
 
 private:
 
