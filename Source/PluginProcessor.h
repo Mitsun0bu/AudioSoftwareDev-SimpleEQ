@@ -96,12 +96,20 @@ private:
     // [LUCAS] : Declare left and right MonoChains for processing stereo audio
     MonoChain leftChain, rightChain;
 
+    // [LUCAS] : 
     enum ChainPositions
     {
         LowCut,
         Peak,
         HighCut
     };
+
+    // [LUCAS] :
+    void updatePeakFilter(const ChainSettings& chainSettings);
+
+    // [LUCAS] :
+    using Coefficients = Filter::CoefficientsPtr;
+    static void updateCoefficients(Coefficients& old, const Coefficients& updated);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)

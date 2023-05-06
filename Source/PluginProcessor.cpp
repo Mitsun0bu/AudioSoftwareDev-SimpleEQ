@@ -109,17 +109,8 @@ void SimpleEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     // [LUCAS] : Get the chainSettings from the parametersManager
     auto chainSettings = getChainSettings(parametersManager);
 
-    // [LUCAS] : Create the peak filter coefficients based on the current chainSettings
-    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        sampleRate,
-        chainSettings.peakFreq,
-        chainSettings.peakQ,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb)
-    );
-
-    // [LUCAS] : Set the peak filter coefficients for the left and right channels
-    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
-    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    // [LUCAS] : Update the peak filter coefficients
+    updatePeakFilter(chainSettings);
 
     auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
         chainSettings.lowCutFreq,
@@ -270,20 +261,11 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // [LUCAS] : 
+    // [LUCAS] : Get the chainSettings from the parametersManager
     auto chainSettings = getChainSettings(parametersManager);
 
-    // [LUCAS] : 
-    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        getSampleRate(),
-        chainSettings.peakFreq,
-        chainSettings.peakQ,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb)
-    );
-
-    // [LUCAS] : 
-    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
-    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    // [LUCAS] : Update the peak filter coefficients
+    updatePeakFilter(chainSettings);
 
     auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
         chainSettings.lowCutFreq,
@@ -435,6 +417,7 @@ void SimpleEQAudioProcessor::setStateInformation (const void* data, int sizeInBy
     // whose contents will have been created by the getStateInformation() call.
 }
 
+// [LUCAS] : This method returns the chainSettings based on the parametersManager
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& parametersManager)
 {
     ChainSettings settings;
@@ -449,6 +432,29 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& parametersMan
 
     return (settings);
 }
+
+
+void SimpleEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
+{
+    // [LUCAS] : Create the peak filter coefficients based on the current chainSettings
+    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        getSampleRate(),
+        chainSettings.peakFreq,
+        chainSettings.peakQ,
+        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb)
+    );
+
+    // [LUCAS] : Set the peak filter coefficients for the left and right channels
+    updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+    updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+}
+
+void SimpleEQAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& updated)
+{
+    *old = *updated;
+}
+
+
 //[LUCAS] : This method creates the parameters for my EQ
 juce::AudioProcessorValueTreeState::ParameterLayout
     SimpleEQAudioProcessor::createParameterLayout()
