@@ -204,7 +204,7 @@ void SimpleEQAudioProcessor::setStateInformation (const void* data, int sizeInBy
     // whose contents will have been created by the getStateInformation() call.
 }
 
-// [LUCAS] : This method returns the chainSettings based on the parametersManager
+// [LUCAS] : This function is a getter for the parameters settings of the EQ.
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& parametersManager)
 {
     ChainSettings settings;
@@ -220,7 +220,8 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& parametersMan
     return (settings);
 }
 
-
+// [LUCAS] : This function updates the peak filter coefficients for the
+//           left and right MonoChains based on the current chainSettings
 void SimpleEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
 {
     // [LUCAS] : Create the peak filter coefficients based on the current chainSettings
@@ -231,57 +232,71 @@ void SimpleEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings
         juce::Decibels::decibelsToGain(chainSettings.peakGainInDb)
     );
 
-    // [LUCAS] : Set the peak filter coefficients for the left and right channels
+    // [LUCAS] : Update the peak filter coefficients for the left and right channels
     updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
     updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
 }
 
+// [LUCAS] : This helper function updates the old Coefficients
+//           with the new updated coefficients
 void SimpleEQAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& updated)
 {
+    // [LUCAS] : Assigns the values of the updated coefficients to the old coefficients.
     *old = *updated;
 }
 
+// [LUCAS] : This function updates the low cut filters of the left and right chains 
+//           based on the current chainSettings
 void SimpleEQAudioProcessor::updateLowCutFilter(const ChainSettings &chainSettings)
 {
-    // [LUCAS] :
+    // [LUCAS] : Calculates the high-pass filter coefficients using the Butterworth method 
     auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
         chainSettings.lowCutFreq,
         getSampleRate(),
         2 * (chainSettings.lowCutSlope + 1)
     );
 
-    // [LUCAS] : 
+    // [LUCAS] : Updates the coefficients and slope of the low cut filters
+    //           in both the left and right chains
     auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
     auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
 
-    // [LUCAS] : 
     updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
     updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
 }
 
+// [LUCAS] : This function updates the high cut filters of the left and right chains 
+//           based on the current chainSettings
 void SimpleEQAudioProcessor::updateHighCutFilter(const ChainSettings &chainSettings)
 {
-    // [LUCAS] :
+    // [LUCAS] : Calculates the low-pass filter coefficients using the Butterworth method 
     auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
         chainSettings.highCutFreq,
         getSampleRate(),
         2 * (chainSettings.highCutSlope + 1)
     );
 
-    // [LUCAS] : 
+    // [LUCAS] : Updates the coefficients and slope of the low cut filters
+    //           in both the left and right chains
     auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
     auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
 
-    // [LUCAS] : 
     updateCutFilter(leftHighCut, cutCoefficients, chainSettings.highCutSlope);
     updateCutFilter(rightHighCut, cutCoefficients, chainSettings.highCutSlope);
 }
 
+// [LUCAS] : This function updates all the filters in the audio processing chains :
+//           low cut filter, peak filter, and high cut filter
+//           based on the current parameters
 void SimpleEQAudioProcessor::updateFilters()
 {
+    // Retrieves the chain settings from the parameters manager
     auto chainSettings = getChainSettings(parametersManager);
-    updateLowCutFilter(chainSettings);
+
+    // Calls the appropriate update functions to update the filter coefficients and settings
+    // in both left and right audio processing chains
     updatePeakFilter(chainSettings);   
+    updateLowCutFilter(chainSettings);
     updateHighCutFilter(chainSettings);
 }
 

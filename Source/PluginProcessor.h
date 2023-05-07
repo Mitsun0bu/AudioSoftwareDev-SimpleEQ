@@ -10,7 +10,7 @@
 
 #include <JuceHeader.h>
 
-// [LUCAS] : Define the slope of the filters
+// [LUCAS] : This enum defines and represents the slope of the filters
 enum Slope
 {
     Slope_12,
@@ -19,7 +19,7 @@ enum Slope
     Slope_48
 };
 
-// [LUCAS] : Struct to hold the parameters of the EQ
+// [LUCAS] : This structure holds the parameters of the EQ
 struct ChainSettings
 {
     float peakFreq { 0 }, peakGainInDb { 0 }, peakQ { 1.f };
@@ -27,7 +27,7 @@ struct ChainSettings
     Slope lowCutSlope { Slope::Slope_12 }, highCutSlope { Slope::Slope_12 };
 };
 
-// [LUCAS] : Getters for the parameters of the EQ
+// [LUCAS] : This function is a getter for the parameters settings of the EQ.
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& parametersManager);
 
 //==============================================================================
@@ -89,19 +89,9 @@ public:
 
 private:
 
-    // [LUCAS] : Define Filter as a single-precision float IIR filter
-    using Filter = juce::dsp::IIR::Filter<float>;
-
-    // [LUCAS] : Define CutFilter as a chain of four IIR filters
-    using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-
-    // [LUCAS] : Define a MonoChain as a chain containing a CutFilter, a single IIR filter, and another CutFilter
-    using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
-
-    // [LUCAS] : Declare left and right MonoChains for processing stereo audio
-    MonoChain leftChain, rightChain;
-
-    // [LUCAS] : 
+    // [LUCAS] : This enum defines and represents the positions of
+    //           the different filter types within the MonoChain :
+    //           [0] LowCut [1] Peak [2] HighCut  
     enum ChainPositions
     {
         LowCut,
@@ -109,34 +99,69 @@ private:
         HighCut
     };
 
-    // [LUCAS] :
-    void updatePeakFilter(const ChainSettings& chainSettings);
+    // [LUCAS] : This defines an alias type, `Filter`,
+    //           for a single-precision float IIR filter
+    using Filter = juce::dsp::IIR::Filter<float>;
 
-    // [LUCAS] :
+    // [LUCAS] : This defines an alias type, `Coefficients`,
+    //           for a Filter::CoefficientsPtr    
     using Coefficients = Filter::CoefficientsPtr;
-    static void updateCoefficients(Coefficients& old, const Coefficients& updated);
 
-    // [LUCAS] :
+    // [LUCAS] : This defines an alias type, `CutFilter`,
+    //           for a chain of four IIR filters
+    using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+
+    // [LUCAS] : This defines a MonoChain as a chain containing :
+    //           a CutFilter, a single IIR filter, and another CutFilter
+    using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+
+    // [LUCAS] : Declaration of left and right MonoChains for processing stereo audio
+    MonoChain leftChain, rightChain;
+
+    // [LUCAS] : This template helper function updates the coefficients of
+    //           an index-specific filter within a processing chain
     template<int Index, typename ChainType, typename CoefficientType>
     void update(ChainType& chain, const CoefficientType& coefficients)
     {
+        // [LUCAS] : Updates the coefficients of the filter at the given index in the chain 
         updateCoefficients(chain.template get<Index>().coefficients, coefficients[Index]);
+
+        // [LUCAS] : Sets the filer bypass status to false (i.e., activate the filter)
         chain.template setBypassed<Index>(false);
     }
 
-    // [LUCAS] :
+    // [LUCAS] : This function updates all the filters in the audio processing chains :
+    //           low cut filter, peak filter, and high cut filter
+    //           based on the current parameters
+    void updateFilters();
+
+    // [LUCAS] : This function updates the peak filter coefficients of the
+    //           left and right MonoChains based on the current chainSettings
+    void updatePeakFilter(const ChainSettings& chainSettings);
+
+    // [LUCAS] : This function updates the low cut filter coefficients of the
+    // left and right MonoChains based on the current chainSettings
+    void updateLowCutFilter(const ChainSettings& chainSettings);
+
+    // [LUCAS] : This function updates the high cut filter coefficients of the
+    // left and right MonoChains based on the current chainSettings
+    void updateHighCutFilter(const ChainSettings& chainSettings);
+
+    // [LUCAS] : This template function updates the coefficients of
+    //           a CutFilter within a processing chain, based on the given slope setting
     template<typename ChainType, typename CoefficientType>
     void updateCutFilter(
         ChainType& chain,
         const CoefficientType& cutCoefficients,
         const Slope& slope)
     {
+        // [LUCAS] : Bypasses all filters in the CutFilter chain
         chain.template setBypassed<0>(true);
         chain.template setBypassed<1>(true);
         chain.template setBypassed<2>(true);
         chain.template setBypassed<3>(true);
 
-        // [LUCAS] : 
+        // [LUCAS] : Updates and activate the filters that contribute to the desired slope
         switch (slope)
         {
             case Slope_48:
@@ -150,14 +175,9 @@ private:
         }
     }
 
-    // LUCAS] :
-    void updateLowCutFilter(const ChainSettings& chainSettings);
-
-    // LUCAS] :
-    void updateHighCutFilter(const ChainSettings& chainSettings);
-
-    // LUCAS] :
-    void updateFilters();
+    // [LUCAS] : This helper function updates the old Coefficients
+    //           with the new updated coefficients
+    static void updateCoefficients(Coefficients& old, const Coefficients& updated);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)
